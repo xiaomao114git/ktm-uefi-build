@@ -80,18 +80,20 @@ jobs:
       - name: Attach the payload to the boot image
         working-directory: src
         run: |
-          # Minimal bring-up argument set, from the HakiOS porting SOP: light the
-          # kernel up first with nothing but one CPU and verbose output, then add
-          # peripherals one at a time. K90's "touchscreen=2 cpus=8" is end-state
-          # configuration for a device whose drivers are already known to work;
-          # feeding it to a kernel that has never run here just makes it drive
-          # hardware it cannot yet handle.
+          # Minimal bring-up argument set: light the kernel up with one CPU and
+          # verbose output, then add peripherals one at a time.
+          #
+          # Note what is deliberately absent: "cpus=". In this loader that argument
+          # means "the kernel will manage several cores, list them in the device
+          # tree", not "use only N". Passing cpus=1 therefore put seven CPU nodes in
+          # the tree, and the kernel started the second one, waited 28 seconds for a
+          # core that never answered, and aborted. Omitting it leaves a single CPU
+          # node, which is what a first bring-up wants.
           #
           #   debug=0x10e  XNU debug mask, early prints
-          #   cpus=1       one core
-          #   bootcpu=1    leave CPU 0 free to watch
+          #   bootcpu=1    boot on core_mpidr[1] (a big core)
           #   -v           verbose
-          CMDLINE="debug=0x10e cpus=1 bootcpu=1 epoch=$(date +%s) -v"
+          CMDLINE="debug=0x10e bootcpu=1 epoch=$(date +%s) -v"
           echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
