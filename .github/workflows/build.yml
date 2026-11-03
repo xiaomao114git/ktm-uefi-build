@@ -57,10 +57,12 @@ jobs:
       - name: Build the XNU loader
         working-directory: src/Platforms/OnePlus/ktmPkg/xnuloader
         run: |
+          # exit 126 otherwise: the scripts carry no executable bit in git
+          chmod +x mkidentity.sh build.sh
           # Placeholder identity: this loader can start the open kernel only. A build
           # against an IPSW-derived identity is what makes Darwin boot.
-          ./mkidentity.sh --placeholder
-          ./build.sh
+          bash ./mkidentity.sh --placeholder
+          bash ./build.sh
           ls -la loader.efi
           echo "--- platform selected at runtime ---"
           grep -n 'platform_ktm' loader.c | head -5
