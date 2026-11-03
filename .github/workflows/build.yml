@@ -80,7 +80,18 @@ jobs:
       - name: Attach the payload to the boot image
         working-directory: src
         run: |
-          CMDLINE="touchscreen=2 cpus=8"
+          # Minimal bring-up argument set, from the HakiOS porting SOP: light the
+          # kernel up first with nothing but one CPU and verbose output, then add
+          # peripherals one at a time. K90's "touchscreen=2 cpus=8" is end-state
+          # configuration for a device whose drivers are already known to work;
+          # feeding it to a kernel that has never run here just makes it drive
+          # hardware it cannot yet handle.
+          #
+          #   debug=0x10e  XNU debug mask, early prints
+          #   cpus=1       one core
+          #   bootcpu=1    leave CPU 0 free to watch
+          #   -v           verbose
+          CMDLINE="debug=0x10e cpus=1 bootcpu=1 epoch=$(date +%s) -v"
           echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
