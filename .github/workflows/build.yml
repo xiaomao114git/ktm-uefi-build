@@ -103,7 +103,8 @@ jobs:
             loader.efi=Platforms/OnePlus/ktmPkg/xnuloader/loader.efi \
             kernel=hakios-kernel \
             ramdisk=Platforms/OnePlus/ktmPkg/RawFiles/root.apfs \
-            --cmdline "$CMDLINE"
+            --cmdline "$CMDLINE" \
+            --usb
 
       - name: List build output
         if: always()
