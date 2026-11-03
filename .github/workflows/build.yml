@@ -90,17 +90,20 @@ jobs:
           # core that never answered, and aborted. Omitting it leaves a single CPU
           # node, which is what a first bring-up wants.
           #
-          #   debug=0x10f  XNU debug mask: 0x100 log-to-screen, 0x0e print/NMI/KPRT, and
-          #                0x01 DB_HALT - halt on panic instead of rebooting, so the loader
-          #                gets the kernel back and can write its log to logfs.
+          #   debug=0x09   the smallest mask that still gives a log: 0x01 DB_HALT keeps the
+          #                kernel from rebooting on a panic so the loader gets it back, and
+          #                0x08 DB_KPRT keeps the panic text. What is gone is 0x10f's 0x02
+          #                DB_PRT, 0x04 DB_NMI and 0x100 - the debug-unit paths. The abort
+          #                lands 33us after "pe_arm_init_debug: failed to find
+          #                cpu-debug-interface", on a synchronous external abort (access to a
+          #                device that does not answer), so this run asks whether enabling
+          #                those paths is what makes the kernel touch one.
           #   cpus=8       this is what makes the loader list every core in the device tree:
           #                it injects its own "cpus=1" only when the payload names none (and of
-          #                two the kernel takes the first). K90 boots the same SM8750 with cpus=8;
-          #                with a single cpu node the kernel's topology parse and its PSCI SMP
-          #                walk a list that is not the machine's.
+          #                two the kernel takes the first). K90 boots the same SM8750 with cpus=8.
           #   bootcpu=1    boot on core_mpidr[1] (a big core)
           #   -v           verbose
-          CMDLINE="debug=0x10f cpus=8 bootcpu=1 epoch=$(date +%s) -v"
+          CMDLINE="debug=0x09 cpus=8 bootcpu=1 epoch=$(date +%s) -v"
           echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
