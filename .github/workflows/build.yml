@@ -90,10 +90,12 @@ jobs:
           # core that never answered, and aborted. Omitting it leaves a single CPU
           # node, which is what a first bring-up wants.
           #
-          #   debug=0x10e  XNU debug mask, early prints
+          #   debug=0x10f  XNU debug mask: 0x100 log-to-screen, 0x0e print/NMI/KPRT, and
+          #                0x01 DB_HALT - halt on panic instead of rebooting, so the loader
+          #                gets the kernel back and can write its log to logfs.
           #   bootcpu=1    boot on core_mpidr[1] (a big core)
           #   -v           verbose
-          CMDLINE="debug=0x10e bootcpu=1 epoch=$(date +%s) -v"
+          CMDLINE="debug=0x10f bootcpu=1 epoch=$(date +%s) -v"
           echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
