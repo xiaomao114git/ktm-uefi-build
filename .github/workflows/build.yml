@@ -93,9 +93,14 @@ jobs:
           #   debug=0x10f  XNU debug mask: 0x100 log-to-screen, 0x0e print/NMI/KPRT, and
           #                0x01 DB_HALT - halt on panic instead of rebooting, so the loader
           #                gets the kernel back and can write its log to logfs.
+          #   cpus=8       this is what makes the loader list every core in the device tree:
+          #                it injects its own "cpus=1" only when the payload names none (and of
+          #                two the kernel takes the first). K90 boots the same SM8750 with cpus=8;
+          #                with a single cpu node the kernel's topology parse and its PSCI SMP
+          #                walk a list that is not the machine's.
           #   bootcpu=1    boot on core_mpidr[1] (a big core)
           #   -v           verbose
-          CMDLINE="debug=0x10f bootcpu=1 epoch=$(date +%s) -v"
+          CMDLINE="debug=0x10f cpus=8 bootcpu=1 epoch=$(date +%s) -v"
           echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
