@@ -55,29 +55,37 @@ jobs:
         working-directory: src
         run: python3 build_uefi.py -d ${{ env.DEVICE }} -r DEBUG
 
-      - name: Fetch the K90 loader and kernel
+      - name: Build the XNU loader for this device
+        working-directory: src/Platforms/OnePlus/ktmPkg/xnuloader
+        run: |
+          chmod +x build.sh
+          # identity.h here describes the iPhone iOS thinks it runs on, which is
+          # common to every HakiOS port; it is not this phone's model.
+          test -f identity.h || { echo "missing identity.h"; exit 1; }
+          # And check the platform table carries this phone's real figures before
+          # spending a build on it.
+          echo "--- platform used for this device ---"
+          sed -n '/platform_annibale = {/,/};/p' platform_private.h
+          bash ./build.sh
+          ls -la loader.efi
+
+      - name: Fetch the K90 kernel
         working-directory: src
         run: |
-          # The K90's platform_annibale reports fb_base 0xFC800000, which is where this
-          # phone's splash framebuffer lives too, so that profile is selected and the
-          # loader drives the SM8750's GIC (dist 0x16000000, redist 0x16080000).
-          curl -fsSL -o hakios-loader.efi "${{ env.K90_PREBUILT }}/loader.efi"
-          curl -fsSL -o hakios-kernel     "${{ env.K90_PREBUILT }}/mach.development.bcm2837"
-          ls -la hakios-loader.efi hakios-kernel
-          echo "loader sha256: $(sha256sum hakios-loader.efi | cut -d' ' -f1)"
+          # Same SM8750, and this kernel is the one its port boots iOS with.
+          curl -fsSL -o hakios-kernel "${{ env.K90_PREBUILT }}/mach.development.bcm2837"
+          ls -la hakios-kernel
           echo "kernel sha256: $(sha256sum hakios-kernel | cut -d' ' -f1)"
 
       - name: Attach the payload to the boot image
         working-directory: src
         run: |
-          # K90's own boot arguments. Same SoC, so its configuration is a far better
-          # starting point than addresses guessed for this phone.
           CMDLINE="touchscreen=2 cpus=8"
           echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
             Mu-ktm-payload.img \
-            loader.efi=hakios-loader.efi \
+            loader.efi=Platforms/OnePlus/ktmPkg/xnuloader/loader.efi \
             kernel=hakios-kernel \
             --cmdline "$CMDLINE"
 
