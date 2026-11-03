@@ -98,14 +98,15 @@ jobs:
           #                cpu-debug-interface", on a synchronous external abort (access to a
           #                device that does not answer), so this run asks whether enabling
           #                those paths is what makes the kernel touch one.
-          #   cpus=1       one core, and (no bootcpu) the machine's first. This is the run that
-          #                asks whether the hang belongs to the SMP path: the previous boot
-          #                listed all eight cores, got past the abort that naming core_mpidr[1]
-          #                used to cause, and then never came back to the loader - no panic
-          #                text, no kernel log, nothing after "jumping to". A single core takes
-          #                PSCI CPU_ON and the per-processor bring-up out of the picture.
+          #   debug=0x10f  back to the full mask: 0x100 puts the kernel's own log on the panel,
+          #                which is the only channel left once it stops returning to the loader.
+          #                0x01 DB_HALT still keeps a panic from rebooting, and 0x08 DB_KPRT keeps
+          #                its text.
+          #   cpus=8       all cores, and (no bootcpu) starting on the machine's first one. Naming
+          #                core_mpidr[1] is what produced the synchronous external abort 33us after
+          #                pe_arm_init_debug; without it the kernel runs on and never comes back.
           #   -v           verbose
-          CMDLINE="debug=0x09 cpus=1 epoch=$(date +%s) -v"
+          CMDLINE="debug=0x10f cpus=8 epoch=$(date +%s) -v"
           echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
