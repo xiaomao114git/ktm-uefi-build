@@ -101,9 +101,14 @@ jobs:
           #   cpus=8       this is what makes the loader list every core in the device tree:
           #                it injects its own "cpus=1" only when the payload names none (and of
           #                two the kernel takes the first). K90 boots the same SM8750 with cpus=8.
-          #   bootcpu=1    boot on core_mpidr[1] (a big core)
+          #   (no bootcpu) K90 does not name one either. With bootcpu=1 the loader starts the
+          #                kernel on core_mpidr[1] and leaves MPIDR 0x0 out of the tree, so the
+          #                tree listed seven cores and the kernel began on a processor that is
+          #                not the machine's first. Whatever PE does after pe_arm_init_debug may
+          #                well be per-processor, which is the one difference the three matched
+          #                runs so far did not touch.
           #   -v           verbose
-          CMDLINE="debug=0x09 cpus=8 bootcpu=1 epoch=$(date +%s) -v"
+          CMDLINE="debug=0x09 cpus=8 epoch=$(date +%s) -v"
           echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
