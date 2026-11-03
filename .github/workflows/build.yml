@@ -1,0 +1,69 @@
+name: Build ktm UEFI
+
+# This repository exists only as a build host. GitHub Actions is disabled on the
+# fork (xiaomao114git/Mu-Silicium) that carries the actual ktmPkg work, so the
+# build runs here and pulls that fork as its source.
+#
+# Output: artifact ktm-uefi-images containing Mu-ktm.img, the fastboot-bootable
+# Android boot image wrapping the UEFI firmware volume.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+env:
+  SOURCE_REPO: xiaomao114git/Mu-Silicium
+  SOURCE_REF: main
+  DEVICE: ktm
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout the firmware source
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ env.SOURCE_REF }}
+          submodules: recursive
+          path: src
+
+      - name: Show what will be built
+        working-directory: src
+        run: |
+          echo "source: ${{ env.SOURCE_REPO }}@${{ env.SOURCE_REF }}"
+          git log -1 --format='commit: %H %s'
+          echo "--- package identity ---"
+          grep -E 'PLATFORM_NAME|SOC_TYPE|PcdFrameBufferWidth|PcdFrameBufferHeight|PcdSmbiosSystemModel' \
+            Platforms/OnePlus/ktmPkg/ktm.dsc || true
+          echo "--- xnuloader stanza ---"
+          grep -A3 'FILE APPLICATION' Platforms/OnePlus/ktmPkg/Include/RAW.inc || true
+          echo "--- is the embedded loader present? ---"
+          ls -la Platforms/OnePlus/ktmPkg/RawFiles/loader.efi || echo 'MISSING loader.efi'
+          echo "--- panel binary inherited from dodge ---"
+          ls -la Binaries/dodge/RawFiles/Panel_AA605_P_7_A0020_dsc_cmd.xml || echo 'MISSING panel xml'
+
+      - name: Install build dependencies
+        working-directory: src
+        env:
+          CI_BUILD: true
+        run: bash ./setup_env.sh -p apt
+
+      - name: Build UEFI for ktm
+        working-directory: src
+        run: python3 build_uefi.py -d ${{ env.DEVICE }} -r DEBUG
+
+      - name: List build output
+        if: always()
+        working-directory: src
+        run: ls -la Mu-* 2>/dev/null || echo 'no Mu-* produced'
+
+      - name: Upload UEFI images
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ktm-uefi-images
+          path: src/Mu-*
+          compression-level: 9
+          if-no-files-found: warn
