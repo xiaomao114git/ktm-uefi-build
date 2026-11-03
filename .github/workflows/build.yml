@@ -67,13 +67,26 @@ jobs:
           echo "--- platform selected at runtime ---"
           grep -n 'platform_ktm' loader.c | head -5
 
+      - name: Fetch the HakiOS kernel
+        working-directory: src
+        run: |
+          # HakiOS's XNU build is board-agnostic (tools/make-kernel.sh produces
+          # mach.development.bcm2837 and the loader supplies the device tree), so the
+          # published image is the right starting point for a first boot here.
+          curl -fsSL -o hakios-kernel \
+            "https://raw.githubusercontent.com/oosexgang/hakios-xnu-kernel/main/prebuilt/hakios-kernel"
+          ls -la hakios-kernel
+          file hakios-kernel 2>/dev/null || true
+          echo "sha256: $(sha256sum hakios-kernel | cut -d' ' -f1)"
+
       - name: Attach the payload to the boot image
         working-directory: src
         run: |
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
-            Platforms/OnePlus/ktmPkg/xnuloader/loader.efi \
-            Mu-ktm-payload.img
+            Mu-ktm-payload.img \
+            loader.efi=Platforms/OnePlus/ktmPkg/xnuloader/loader.efi \
+            kernel=hakios-kernel
 
       - name: List build output
         if: always()
