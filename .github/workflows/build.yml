@@ -82,11 +82,25 @@ jobs:
       - name: Attach the payload to the boot image
         working-directory: src
         run: |
+          # The kernel reads every SoC address from boot arguments (PE_parse_boot_argn),
+          # not from compile-time constants, so the generic HakiOS image can be pointed
+          # at this phone by supplying the values from its own device tree. These are
+          # the Ace 6 figures: IPA/GSI, IPCC, AOSS, RSC, SMMU, mailbox, MPSS memory,
+          # SMEM, IMEM, the IPA streams and the PAS ids.
+          CMDLINE="soc_ipa_base=0x3e40000 soc_gsi_base=0x3e04000 soc_ipcc=0x406000 \
+          soc_aoss=0xc300000 soc_rsc=0x16520000 soc_apps_smmu=0x15000000 \
+          soc_cmd_db=0x81c60000 soc_mpss_mem=0x8ba00000 modem_ipa_fw_at=0x9b090000 \
+          soc_smem=0x81d00000 soc_imem=0x14600000 soc_ipa_stream=0x4a0 \
+          soc_ipa_stream_uc=0x4a2 soc_pas_ipa=0xf soc_ipa_fw=ipa_fws \
+          cpus=8 bootcpu=7"
+          CMDLINE=$(echo $CMDLINE)
+          echo "cmdline: $CMDLINE"
           python3 Platforms/OnePlus/ktmPkg/xnuloader/attach_payload.py \
             Mu-ktm.img \
             Mu-ktm-payload.img \
             loader.efi=Platforms/OnePlus/ktmPkg/xnuloader/loader.efi \
-            kernel=hakios-kernel
+            kernel=hakios-kernel \
+            --cmdline "$CMDLINE"
 
       - name: List build output
         if: always()
